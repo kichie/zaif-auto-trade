@@ -22,6 +22,7 @@ SECRET = zaif_keys["secret"]
 not_able_bid_count = 0
 count=0
 interval = 1
+trade_result = {"order_id" : 0}
 #last_trade_priceよりも上がりすぎて戻ってこない場合再取得
 def resetlast_trade_price(zaif_public,last_trade_price,funds_btc):
     global not_able_bid_count
@@ -66,7 +67,7 @@ if __name__=='__main__':
             last_price = int(zaif_public.last_price('btc_jpy')["last_price"])
             
         except:
-            print("エラー:Cant get data")
+            print("Error:Can't get data")
         finally:
             print("市場取引価格:"+str(last_price))
             print("btc資産:"+str(funds_btc))
@@ -88,7 +89,7 @@ if __name__=='__main__':
                 print("売却注文価格:"+str(last_price))
                 print("売却注文量　:"+str(ask_amount))
             except:
-                print("エラー:cant trade[ask_up]")
+                print("Error:cant trade[ask_up]")
             
             if(trade_result["order_id"] != 0):
                 CANCEL_FLUG = True
@@ -108,7 +109,7 @@ if __name__=='__main__':
                 print("売却注文価格:"+str(last_price))
                 print("売却注文量　:"+str(ask_amount))
             except:
-                print("エラー:cant trade[ask]")
+                print("Error:Can't trade[ask]")
                 
             if(trade_result["order_id"] != 0):
                 CANCEL_FLUG = True
@@ -118,7 +119,8 @@ if __name__=='__main__':
         #btcを持っていないでlastpriceより値下がりしたら買い
         elif(funds_btc < 0.001 and last_price < last_trade_price):
             try:
-                bid_amount = (Decimal(funds_jpy)/last_price).quantize(Decimal('0.0001'))
+                bid_amount = 0.0001
+#                bid_amount = (Decimal(funds_jpy)/last_price).quantize(Decimal('0.0001'))
                 trade_result = zaif_trade.trade(currency_pair="btc_jpy", action="bid", price=last_price, amount=bid_amount)
                 last_trade_price_pre = last_trade_price
                 last_trade_price = last_price
@@ -128,7 +130,7 @@ if __name__=='__main__':
                 print("購入注文価格:"+str(last_price))
                 print("購入注文量　:"+str(bid_amount))
             except:
-                print("エラー:cant trade[bid]")
+                print("Error:Can't trade[bid]")
                 
             if trade_result["order_id"] != 0:
                 CANCEL_FLUG = True
@@ -137,13 +139,16 @@ if __name__=='__main__':
                 print('■ 取引が完了しました。')
             
             if CANCEL_FLUG:
-                trade_info = zaif_trade.get_info2()
-                if trade_info["open_orders"] > 0:
-                    print("■ キャンセルしました")
-                    print(zaif_trade.cancel_order(order_id=order_id))
-                    last_trade_price = last_trade_price_pre
-                else:
-                    print("■ 取引が完了しました。")
+                try:
+                    trade_info = zaif_trade.get_info2()
+                    if trade_info["open_orders"] > 0:
+                        print("■ キャンセルしました")
+                        print(zaif_trade.cancel_order(order_id=order_id))
+                        last_trade_price = last_trade_price_pre
+                    else:
+                        print("■ 取引が完了しました。")
+                except:
+                    print("Error:Can't trade[cancel]")
         
         resetlast_trade_price(zaif_public,last_trade_price,funds_btc)
         
